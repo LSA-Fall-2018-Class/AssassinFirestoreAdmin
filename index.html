@@ -1,0 +1,54 @@
+<!DOCTYPE html>             <!-- Declare that this an HTML5 document. -->
+<html lang="en">            <!-- Declare the content language. -->
+<head>
+    <meta charset="utf-8">  <!-- Declare the document's character set. -->
+    <title>Assassin Admin App</title>   <!-- Set the page title.  Will be displayed at the top of the browser window and in bookmarks.  -->
+    <link rel="stylesheet" href="index.css">    <!-- Include styles from index.css. -->
+</head>
+<!-- ***  Start aside section ****  -->
+<aside>
+  <button id="buildReportButton">Build Reports</button>
+  <button id="showReportButton">Show Reports</button>
+  <br><scan id="activeChain"></scan><br>
+  <br><scan id="awaitingAssignment"></scan><br>
+  <br><scan id="inactive"></scan><br>
+  <br><scan id="onBreak"></scan><br>
+</aside>
+
+  <body>
+    Assassin Admin Application
+    <br><br>
+    <!--  Message Label frequently updated -->
+    <div id = "messageBoard">Message Board...</div>
+    <br>
+    <!--  Player Data  -->
+    <span id="playerIdLabel">ID: </span><input type="text" id="idInputBox" value="">  <br>
+    <span id="playerIdLabel">Name: </span><input type="text" id="nameInputBox" value="">  <br>
+
+    <br><br>
+    <button type="button" id="logInButton">Log In</button> <br><br>
+    <button type="button" id="blankGameButton">Blank Game</button> <br><br>
+    <button type="button" id="preBuiltRunningGameButton">Pre-Built Running Game</button><br><br>
+    <button type="button" id="preBuiltPlayersWaitingGameButton">Pre-Built Players Waiting Game</button><br><br>
+    <button type="button" id="startGameButton">Start Game</button> <br><br>
+    <button type="button" id="reactivateButton">Re-Activate Player</button><br><br>
+    <br>
+    <scan id="payBountiesNumberLabel">Number of bounties: </scan><input type="text" id="payBountiesNumber"><br>
+    <button type="button" id="payBountiesButton">Pay Bounties</button><br><br>
+    <br>
+    <button id="bombButton">Bomb</button><br><br>
+    <button id="addPlayerButton">Add Player</button><br><br>
+    <button id="addAdminButton">Add Admin</button><br><br>
+    <br>
+    <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-messaging.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-functions.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-storage.js"></script>
+    
+    <script src="index.js"></script>    <!-- Include index.js as a JavaScript script file. -->
+  </body>
+
+</html>
