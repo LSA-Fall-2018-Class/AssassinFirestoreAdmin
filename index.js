@@ -54,9 +54,7 @@ var lastEvent;
  presetPlayers.push(["12345678", "Carlo", PLAYER_STATUS_ACTIVE, "98765432", "carlo pic.jpg"]);
  presetPlayers.push(["98765432", "Joey", PLAYER_STATUS_ACTIVE, "99998888", "joey pic.jpg"]);
  presetPlayers.push(["99998888", "Adlani", PLAYER_STATUS_ACTIVE, "11113333", "adlani pic.jpg"]);
- presetPlayers.push(["11113333", "Jon", PLAYER_STATUS_ACTIVE, "55555555", "jon pic.jpg"]);
- presetPlayers.push(["55555555", "Ofer", PLAYER_STATUS_ACTIVE, "12345678", "ofer.jpg"]);
-
+ presetPlayers.push(["11113333", "Jon", PLAYER_STATUS_ACTIVE, "12345678", "jon pic.jpg"]);
 
  // in progress game with closed loop of 4 players, 2 admins
   var presetAdmins = new Array;
@@ -263,28 +261,9 @@ preBuiltRunningGameButton.addEventListener('click', function(e)
         console.error("Add player failed Name is " + presetPlayers[i][INDEX_PLAYER_NAME], error);
       });
 
-      // calculate targetTargetName - more complex than the one liners below
-      var myTargetsTargetName;
-
-      if (i == (presetPlayers.length-2))  // // Second to last in array, assign to pos 0 name
-      {
-        myTargetsTargetName = presetPlayers[0][INDEX_PLAYER_NAME];
-      }
-      else
-      if (i == (presetPlayers.length-1))  // // last in array, assign to pos 1 name
-      {
-        myTargetsTargetName = presetPlayers[1][INDEX_PLAYER_NAME];
-      }
-      else {
-          myTargetsTargetName = presetPlayers[i+2][INDEX_PLAYER_NAME];  // look 2 players over
-      }
-
       // add link in the chain
       db.collection("chain").doc(presetPlayers[i][INDEX_PLAYER_ID]).set({
-        target: (i == (presetPlayers.length-1)) ? presetPlayers[0][INDEX_PLAYER_ID] : presetPlayers[i+1][INDEX_PLAYER_ID],
-        targetsName: (i == (presetPlayers.length-1)) ? presetPlayers[0][INDEX_PLAYER_NAME] : presetPlayers[i+1][INDEX_PLAYER_NAME],
-        pictureName: (i == (presetPlayers.length-1)) ? presetPlayers[0][INDEX_PLAYER_PICTURE_NAME] : presetPlayers[i+1][INDEX_PLAYER_PICTURE_NAME],
-        targetsTargetName: myTargetsTargetName
+        target: (i == (presetPlayers.length-1)) ? presetPlayers[0][INDEX_PLAYER_ID] : presetPlayers[i+1][INDEX_PLAYER_ID]
       })
       .then(function() {
         console.log("Success writing to chain id is " + presetPlayers[i][INDEX_PLAYER_ID] + " target is " + (i == (presetPlayers.length-1)) ? presetPlayers[0][INDEX_PLAYER_ID] : presetPlayers[i+1][INDEX_PLAYER_ID]);
