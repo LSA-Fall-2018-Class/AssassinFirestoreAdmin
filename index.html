@@ -11,8 +11,11 @@
   <button id="showReportButton">Show Reports</button>
   <br><scan id="activeChain"></scan><br>
   <br><scan id="awaitingAssignment"></scan><br>
+  <br><scan id="scheduled"></scan><br>  
   <br><scan id="inactive"></scan><br>
   <br><scan id="onBreak"></scan><br>
+  <br><scan id="registered"></scan><br>
+
 </aside>
 
   <body>
@@ -21,24 +24,49 @@
     <!--  Message Label frequently updated -->
     <div id = "messageBoard">Message Board...</div>
     <br>
-    <!--  Player Data  -->
-    <span id="playerIdLabel">ID: </span><input type="text" id="idInputBox" value="">  <br>
-    <span id="playerIdLabel">Name: </span><input type="text" id="nameInputBox" value="">  <br>
+    <span id="gameStatusLabel">Game Status: </span> <span id="gameStatus"></span>  <br><br>
 
+    <!--  Player Data  -->
+    <span id="playerIdLabel">Player ID: </span><input type="text" id="idInputBox" value="">  <br>
+    <span id="playerIdLabel">Player Name: </span><input type="text" id="nameInputBox" value="">  <br>
+
+    <br>
+    <!--  Registration Radio Buttons - ASAP into Waiting or Scheduled  -->
+    <form id="registrationTypes" action="">
+      <input type="radio" name="registration"checked="checked"><span id="registrationLabelWaiting">Waiting</span>
+      <input type="radio" name="registration"><span id="registrationLabelScheduled">Scheduled</span><br>
+    </form>
+
+    <!--  Log in and Add admin buttons disabled for now
+    <button type="button" id="logInButton">Log In</button> &nbsp &nbsp <button id="addAdminButton">Add Admin</button><br><br>
+    -->
+    <br>
+    <button type="button" id="blankGameButton">Blank Game</button> &nbsp &nbsp
+    <button type="button" id="preBuiltRunningGameButton">Running Game</button> &nbsp &nbsp
+    <button type="button" id="preBuiltPlayersWaitingGameButton">Waiting Game</button> &nbsp &nbsp
+    <button type="button" id="preBuiltPausedGameButton">Paused Game</button><br><br>
+
+    <button type="button" id="startGameButton">Start Game</button> &nbsp &nbsp <button id="endGameButton">End Game</button> &nbsp &nbsp <button id="bombButton">Bomb</button> &nbsp &nbsp <button id="searchPlayerButton">Search Player</button> &nbsp &nbsp <button id="removePlayerButton">Remove Player</button><br><br>
+
+    <button type="button" id="addPlayerButton">Add Player</button> &nbsp &nbsp <button id="approveButton">Approve Player</button> &nbsp &nbsp <button id="approveAllButton">Approve All Registered</button> &nbsp &nbsp <button id="volunteerButton">Get Volunteer</button> <br><br>
+    <scan id="payBountiesNumberLabel">Number of bounties: </scan><input type="text" id="payBountiesNumber">  &nbsp
+    <button type="button" id="payBountiesButton">Pay Bounties</button>  &nbsp &nbsp
+    <button type="button" id="checkBountiesButton">Check Bounties Owed</button>
     <br><br>
-    <button type="button" id="logInButton">Log In</button> <br><br>
-    <button type="button" id="blankGameButton">Blank Game</button> <br><br>
-    <button type="button" id="preBuiltRunningGameButton">Pre-Built Running Game</button><br><br>
-    <button type="button" id="preBuiltPlayersWaitingGameButton">Pre-Built Players Waiting Game</button><br><br>
-    <button type="button" id="startGameButton">Start Game</button> <br><br>
-    <button type="button" id="reactivateButton">Re-Activate Player</button><br><br>
+
+    <scan id="minBreakLengthLabel">Min break length (minutes): </scan><input type="text" id="minBreakLength">  &nbsp
+    <button type="button" id="updateGameData">Update Game Data</button>
+    <br><br>
+
+    <span id="playerPictureInputLabel">Choose a Player Picture</span>
+    <input type="file" id="playerPictureInput">
+    <br><br>
+    <button id="uploadPlayerPictureButton">Upload Player Picture</button> &nbsp &nbsp
+    <button id="viewPlayerPictureButton">View Player Picture</button> <br><br>
     <br>
-    <scan id="payBountiesNumberLabel">Number of bounties: </scan><input type="text" id="payBountiesNumber"><br>
-    <button type="button" id="payBountiesButton">Pay Bounties</button><br><br>
-    <br>
-    <button id="bombButton">Bomb</button><br><br>
-    <button id="addPlayerButton">Add Player</button><br><br>
-    <button id="addAdminButton">Add Admin</button><br><br>
+    <div id="myPictureLabel">Player Picture:</div>
+    <img id="playerPicture" src=""><br>
+
     <br>
     <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-auth.js"></script>
@@ -47,7 +75,7 @@
     <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-messaging.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-functions.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.3/firebase-storage.js"></script>
-    
+
     <script src="index.js"></script>    <!-- Include index.js as a JavaScript script file. -->
   </body>
 
