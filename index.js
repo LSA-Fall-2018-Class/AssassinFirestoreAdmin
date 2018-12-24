@@ -974,10 +974,10 @@ volunteerButton.addEventListener('click', function(e)
         volunteerNeeded: true
       })
       .then(function() {
-        console.log("Set game status to Paused");
+        console.log("Updated game data - volunteer needed to true");
       })
       .catch(function(error) {
-        console.error("Set game status to Paused failed", error);
+        console.error("Updated game data - volunteer needed to true - failed", error);
       });
 
 });
