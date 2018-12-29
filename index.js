@@ -27,32 +27,37 @@ const GAME_STATUS_COMPLETED_TEXT = "Completed";
 const GAME_STATUS_UNKNOWN_TEXT = "Unknown Status";
 
 // Player status constants
-const PLAYER_STATUS_LOGGED_OFF = -1;
-const PLAYER_STATUS_WAITING = 0;
-const PLAYER_STATUS_ACTIVE = 1;
-const PLAYER_STATUS_INACTIVE = 2;
-const PLAYER_STATUS_BREAK = 3;
-const PLAYER_STATUS_REGISTERED = 4;
-const PLAYER_STATUS_SCHEDULED = 5;
-
+const PLAYER_STATUS_LOGGED_OFF = 0;
 const PLAYER_STATUS_LOGGED_OFF_TEXT = "Logged Off";
-const PLAYER_STATUS_WAITING_TEXT = "Waiting";
-const PLAYER_STATUS_ACTIVE_TEXT = "Active";
-const PLAYER_STATUS_INACTIVE_TEXT = "Inactive";
-const PLAYER_STATUS_BREAK_TEXT = "On Break";
+const PLAYER_STATUS_REGISTER_IN_PROGRESS = 1;
+const PLAYER_STATUS_REGISTER_IN_PROGRESS_TEXT = "";
+const PLAYER_STATUS_REGISTERED = 2;
 const PLAYER_STATUS_REGISTERED_TEXT = "Registered";
+const PLAYER_STATUS_WAITING = 3;
+const PLAYER_STATUS_WAITING_TEXT = "Waiting";
+const PLAYER_STATUS_SCHEDULED = 4;
 const PLAYER_STATUS_SCHEDULED_TEXT = "Scheduled";
+const PLAYER_STATUS_ACTIVE = 5;
+const PLAYER_STATUS_ACTIVE_TEXT = "Active";
+const PLAYER_STATUS_INACTIVE = 6;
+const PLAYER_STATUS_INACTIVE_TEXT = "Inactive";
+const PLAYER_STATUS_BREAK = 7;
+const PLAYER_STATUS_BREAK_TEXT = "On Break";
+const PLAYER_STATUS_GAME_OVER = 8;
+const PLAYER_STATUS_GAME_OVER_TEXT = "Game Completed";
 const PLAYER_STATUS_UNKNOWN_TEXT = "Unknown Status";
 
 const REGISTERED_ASAP = 0;      // waiting queue - enter game as soon as possible
 const REGISTERED_SCHEDULED = 1; // scheduled queue - wait to enter game until scheduled start
 
 const ACTIVE_CHAIN_LABEL = "Active Chain: <br>";
-const AWAITING_ASSIGNMENT_LABEL = "Awaiting Assignment: <br>";
+const WAITING_ASSIGNMENT_LABEL = "Waiting Assignment: <br>";
 const INACTIVE_LABEL = "Inactive: <br>";
 const ON_BREAK_LABEL = "On Break: <br>";
 const REGISTERED_LABEL = "Registered: <br>";
 const SCHEDULED_LABEL = "Scheduled: <br>";
+const GAME_OVER_LABEL = "Game Over: <br>";
+const ERRORS_LABEL = "Player Errors: <br><br>";
 
 const EVENT_TYPE_APP_STARTED = 0;
 const EVENT_TYPE_START_GAME = 1;
@@ -67,6 +72,7 @@ const EVENT_TYPE_PAY_BOUNTY_FAILED = 19;
 
 const OWED_STARTER = 0; // initial number of bounties owed.  Can change for testing purposes
 const MIN_LENGTH_BREAK_DEFAULT = 2; // number of minutes minimum break length
+const PLAYER_ID_LENGTH = 8;   // length of player id
 
 // message text area
 const MESSAGE_TEXT_PLAYER_DOESNT_EXIST = "Error - Player doesn't exist, id = "
@@ -113,12 +119,13 @@ var lastEvent;
 
   // Reports area
   var tempChainMessage = "";
-  var tempAwaitingMessage = "";
+  var tempWaitingMessage = "";
   var tempScheduledMessage = "";
   var tempInactiveMessage = "";
   var tempOnBreakMessage = "";
   var tempRegisteredMessage = "";
-
+  var tempGameOverMessage = "";
+  var tempErrorsMessage = "";
 
 // ----- Initialize Firebase -----------------------------------------------------
 // Get the config info from the database settings area on your firestore database
@@ -285,7 +292,20 @@ lastEvent = EVENT_TYPE_APP_STARTED;
 function getScreenData()
 {
   // Grab data from input boxes and store in global vars
-  id = document.getElementById("idInputBox").value;
+  var tempId = document.getElementById("idInputBox").value;
+
+  // strip off extra space if necessary
+  if (String(tempId)[PLAYER_ID_LENGTH] == " ")
+  {
+    // splice off starting at the 8th position
+    console.log("8th space found, slice off extra characters, use first 8 only.");
+    id = String(tempId).slice(0,PLAYER_ID_LENGTH);
+  }
+  else
+  {
+    id = tempId;
+  }
+
   name = document.getElementById("nameInputBox").value;
 
   var myForm = document.getElementById("registrationTypes");
@@ -332,13 +352,15 @@ blankGameButton.addEventListener('click', function(e)
     deleteChain();
     deleteQueue();
     deleteSchedQueue();
+    deleteErrors();
 
     // Set game status to "Not Started"  ---------------------------------
     db.collection("gameData").doc("gameData").update({
-      status: GAME_STATUS_NOT_STARTED
+      status: GAME_STATUS_NOT_STARTED,
+      volunteerNeeded: false
     })
     .then(function() {
-      console.log("Set game status to Not Started");
+      console.log("Set game status to Not Started, set volunteerNeeded to false");
     })
     .catch(function(error) {
       console.error("Set game status to Not Started failed", error);
@@ -676,6 +698,33 @@ endGameButton.addEventListener('click', function(e)
     console.error("Set game status to Paused failed", error);
   });
 
+
+  // update all players status to Game Over
+  db.collection("players").get().then(function(querySnapshot)
+  {
+      querySnapshot.forEach(function(doc)
+      {
+          // doc.data() is never undefined for query doc snapshots
+            console.log("Looping through all players, moving to Game Over Status " + doc.id);
+
+            var playerRef = db.collection("players").doc(doc.id);
+
+            playerRef.update({
+              status: PLAYER_STATUS_GAME_OVER
+            })
+            .then(function() {
+              console.log("Players status update success To Game Over.");
+              // display player name in the message board
+              // message.innerHTML = MESSAGE_TEXT_MOVE_WAITING + doc.id;
+            })
+            .catch(function(error) {
+              console.error("Error player status update to db.", error);
+            });
+
+      }); // end query snapshot for each player
+
+  });
+
   deleteQueue();
   deleteChain();
 
@@ -727,7 +776,7 @@ addPlayerButton.addEventListener('click', function(e)
 
             // add player to the waiting queue or scheduled queue -------------
 
-            var whichQueue;   // zzzz
+            var whichQueue;
             if (regType == PLAYER_STATUS_WAITING)   // add to waiting queue
             {
                 whichQueue = "waiting";
@@ -1817,6 +1866,25 @@ function deleteSchedQueue()
 
 // ----------------------------------------------------------
 
+function deleteErrors()
+{
+  var errorsRef = db.collection("errors");
+  var query = errorsRef.get().then(snapshot => {
+      var batch = db.batch();
+      snapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      batch.commit();
+    })
+    .catch(err => {
+      console.log('Error getting or deleting errors documents', err);
+    });
+}  // end function deleteErrors
+
+
+// ----------------------------------------------------------
+
+
 function deleteChain()
 {
   var chainRef = db.collection("chain");
@@ -1839,20 +1907,22 @@ buildReportButton.addEventListener('click', function(e)
 {
     var i;
     tempChainMessage = "";
-    tempAwaitingMessage = "";
+    tempWaitingMessage = "";
     tempScheduledMessage = "";
     tempInactiveMessage = "";
     tempOnBreakMessage = "";
     tempRegisteredMessage = "";
+    tempGameOverMessage = "";
+    tempErrorsMessage = "";
 
     document.getElementById("activeChain").innerHTML = "";
     document.getElementById("scheduled").innerHTML = "";
-    document.getElementById("awaitingAssignment").innerHTML = "";
+    document.getElementById("waitingAssignment").innerHTML = "";
     document.getElementById("inactive").innerHTML = "";
     document.getElementById("onBreak").innerHTML = "";
     document.getElementById("registered").innerHTML = "";
-
-    console.log("Got into buildAndShowQueues");
+    document.getElementById("gameOver").innerHTML = "";
+    document.getElementById("errors").innerHTML = "";
 
     // loop through players list, build temp messages for waiting, inactive, and break
     db.collection("players").get().then(function(querySnapshot)
@@ -1866,7 +1936,7 @@ buildReportButton.addEventListener('click', function(e)
           switch (doc.data().status)
           {
               case PLAYER_STATUS_WAITING:
-                tempAwaitingMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", awaiting assignment.<br>";
+                tempWaitingMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", waiting assignment.<br>";
               break;
 
               case PLAYER_STATUS_SCHEDULED:
@@ -1882,7 +1952,12 @@ buildReportButton.addEventListener('click', function(e)
                 break;
 
             case PLAYER_STATUS_REGISTERED:
-                  tempRegisteredMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", registered.<br>";
+                  var queueType = (doc.data().registrationType == REGISTERED_ASAP) ? "Waiting" : "Scheduled";
+                  tempRegisteredMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", registered - " + queueType + " queue.<br>";
+                break;
+
+            case PLAYER_STATUS_GAME_OVER:
+                  tempGameOverMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", game over.<br>";
                 break;
 
             default:
@@ -1940,9 +2015,24 @@ buildReportButton.addEventListener('click', function(e)
       })
       .catch(err => {
         console.log('Error getting or deleting chain documents', err);
-      });
+    });
 
-      document.getElementById("activeChain").innerHTML = "Reports Built...";
+    // Retrieve Error DB
+
+    tempErrorsMessage = "";
+    var errorsDB = db.collection("errors");
+
+    var query = errorsDB.get().then(snapshot =>
+    {
+        snapshot.forEach(doc =>
+        {
+          console.log("Error - " + doc.id + " Doc data id is " + doc.data().id);
+          var timeOfError = new Date((doc.data().timeStamp).toDate());
+          tempErrorsMessage += "Player: " + doc.data().id + " .  Error Message: " + doc.data().messageText + " at " + timeOfError + " <br><br>";
+        });
+    });
+
+    document.getElementById("activeChain").innerHTML = "Reports Built...";
 
 }); // end function build reports button listener --------------------------------------------
 
@@ -1951,19 +2041,21 @@ buildReportButton.addEventListener('click', function(e)
 showReportButton.addEventListener('click', function(e)
 {
       document.getElementById("activeChain").innerHTML = ACTIVE_CHAIN_LABEL + tempChainMessage;
-      document.getElementById("awaitingAssignment").innerHTML = AWAITING_ASSIGNMENT_LABEL + tempAwaitingMessage;
+      document.getElementById("waitingAssignment").innerHTML = WAITING_ASSIGNMENT_LABEL + tempWaitingMessage;
       document.getElementById("inactive").innerHTML = INACTIVE_LABEL + tempInactiveMessage;
       document.getElementById("scheduled").innerHTML = SCHEDULED_LABEL + tempScheduledMessage;
 
       document.getElementById("onBreak").innerHTML = ON_BREAK_LABEL + tempOnBreakMessage;
       document.getElementById("registered").innerHTML = REGISTERED_LABEL + tempRegisteredMessage;
+      document.getElementById("gameOver").innerHTML = GAME_OVER_LABEL + tempGameOverMessage;
+      document.getElementById("errors").innerHTML = ERRORS_LABEL + tempErrorsMessage;
 
       document.getElementById("activeChain").style.visibility = "visible";
-      document.getElementById("awaitingAssignment").style.visibility = "visible";
+      document.getElementById("waitingAssignment").style.visibility = "visible";
       document.getElementById("inactive").style.visibility = "visible";
       document.getElementById("onBreak").style.visibility = "visible";
       document.getElementById("registered").style.visibility = "visible";
-
+      document.getElementById("gameOver").style.visibility = "visible";
 });
 
 // start function decodeGameStatus  -------------------------------
@@ -2028,6 +2120,10 @@ function decodePlayerStatus(statusPassedIn)
 
     case PLAYER_STATUS_REGISTERED:
       return PLAYER_STATUS_REGISTERED_TEXT;
+            break;
+
+    case PLAYER_STATUS_GAME_OVER:
+      return PLAYER_STATUS_GAME_OVER_TEXT;
             break;
 
     default:
@@ -2099,7 +2195,7 @@ function showAdminDashboard()
     document.getElementById("addNewPlayerButton").style.visibility = "visible";
 
     document.getElementById("activeChain").style.visibility = "visible";
-    document.getElementById("awaitingAssignment").style.visibility = "visible";
+    document.getElementById("waitingAssignment").style.visibility = "visible";
     document.getElementById("inactive").style.visibility = "visible";
     document.getElementById("onBreak").style.visibility = "visible";
 
@@ -2124,7 +2220,7 @@ function hideAdminDashboard()
     document.getElementById("addNewPlayerButton").style.visibility = "hidden";
 
     document.getElementById("activeChain").style.visibility = "hidden";
-    document.getElementById("awaitingAssignment").style.visibility = "hidden";
+    document.getElementById("waitingAssignment").style.visibility = "hidden";
     document.getElementById("inactive").style.visibility = "hidden";
     document.getElementById("onBreak").style.visibility = "hidden";
 
