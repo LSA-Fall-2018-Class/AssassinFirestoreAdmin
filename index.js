@@ -73,6 +73,7 @@ const EVENT_TYPE_PAY_BOUNTY_FAILED = 19;
 const OWED_STARTER = 0; // initial number of bounties owed.  Can change for testing purposes
 const MIN_LENGTH_BREAK_DEFAULT = 2; // number of minutes minimum break length
 const PLAYER_ID_LENGTH = 8;   // length of player id
+const REPORTS_DELAY = 2;  // seconds
 
 // message text area
 const MESSAGE_TEXT_PLAYER_DOESNT_EXIST = "Error - Player doesn't exist, id = "
@@ -179,7 +180,7 @@ var id;
 var name;
 var target;
 var regType;    // registration type
-
+var regenerateNeeded = false;
 
 // create reference to message board
 var message = document.getElementById("messageBoard");
@@ -193,6 +194,8 @@ var minBreakLength = MIN_LENGTH_BREAK_DEFAULT;
 var volunteerNeeded = false;  // used for scheduled starts
 var nextScheduledStart = "";
 var registrationType; // either asap into waiting or Scheduled
+
+var regenTimer = setInterval(regenerateReports, (1500 * REPORTS_DELAY));  // milliseconds * seconds
 
 gameDataRef.get().then(function(doc)
 {
@@ -274,7 +277,13 @@ gameDataRef.onSnapshot(function(doc)
 
             });  // end chain get
 
+            // regenerateReports();
+            regenerateNeeded = true;
+
         } // end if game status is paused
+
+        //regenerateReports();
+        regenerateNeeded = true;
 
     } // end if doc exists
     else {
@@ -283,6 +292,90 @@ gameDataRef.onSnapshot(function(doc)
     }
 });
 // end subscribe to change in game status **************  Subscribe *************
+
+
+// --------------------------------------------------------------------------
+// subscribe to change in players collection **************  Subscribe *************
+
+var playerCollectionUnsubscribe;
+
+playerCollectionUnsubscribe = db.collection("players").onSnapshot(function(doc)
+{
+      // regenerateReports();
+      regenerateNeeded = true;
+
+      // console.log("Players subscribe called.");
+      // if (doc.exists)
+      // {
+      //   console.log("Players subscribe called. - doc exists");
+      //   regenerateReports();
+      // }
+});
+
+
+// end subscribe -------------------------------------------------------------------
+
+
+// --------------------------------------------------------------------------
+// subscribe to change in chain **************  Subscribe *************
+
+var chainCollectionUnsubscribe;
+
+chainCollectionUnsubscribe = db.collection("chain").onSnapshot(function(doc)
+{
+      regenerateNeeded = true;
+
+      // regenerateReports();
+      //
+      // console.log("Chain subscribe called");
+      //
+      // if (doc.exists)
+      // {
+      //   console.log("Chain subscribe called - doc exists");
+      //
+      //   regenerateReports();
+      // }
+});
+
+
+// end subscribe -------------------------------------------------------------------
+
+
+// --------------------------------------------------------------------------
+// subscribe to change in waiting queue **************  Subscribe *************
+
+var queuesCollectionUnsubscribe;
+
+queuesCollectionUnsubscribe = db.collection("queues").onSnapshot(function(doc)
+{
+      regenerateNeeded = true;
+
+      //regenerateReports();
+
+      // console.log("Queues subscribe called");
+      //
+      // if (doc.exists)
+      // {
+      //   console.log("Queues subscribe called - doc exists");
+      //   regenerateReports();
+      // }
+      // else
+      // {
+      //   console.log("Queues subscribe called - doc is blank.");
+      // }
+});
+
+
+
+// end subscribe -------------------------------------------------------------------
+
+// --------------------------------------------------------------------------
+// subscribe to change in scheduled queue **************  Subscribe *************
+
+
+
+// end subscribe -------------------------------------------------------------------
+
 
 lastEvent = EVENT_TYPE_APP_STARTED;
 
@@ -310,6 +403,7 @@ function getScreenData()
 
   var myForm = document.getElementById("registrationTypes");
 
+  console.log("Inside get screen data - ASAP registration checked is " + myForm.registration[0].checked)
   if (myForm.registration[0].checked == true)
   {
       regType = REGISTERED_ASAP;
@@ -319,7 +413,7 @@ function getScreenData()
       regType = REGISTERED_SCHEDULED;
   }
 
-  console.log("Form data: id = " + id + "  Name = " + name);
+  // console.log("Form data: id = " + id + "  Name = " + name);
 }
 
 // --------------------------------------------------------------------------
@@ -330,6 +424,10 @@ function getScreenData()
 
 blankGameButton.addEventListener('click', function(e)
 {
+  clearInterval(regenTimer);
+
+  regenTimer = setInterval(regenerateReports, (2000 * REPORTS_DELAY));
+
   resetInputBoxes();
   status = GAME_STATUS_NOT_STARTED;
   document.getElementById("gameStatus").innerHTML = decodeGameStatus(GAME_STATUS_NOT_STARTED);
@@ -777,7 +875,7 @@ addPlayerButton.addEventListener('click', function(e)
             // add player to the waiting queue or scheduled queue -------------
 
             var whichQueue;
-            if (regType == PLAYER_STATUS_WAITING)   // add to waiting queue
+            if (regType == REGISTERED_ASAP)   // add to waiting queue
             {
                 whichQueue = "waiting";
                 console.log("Which queue set to waiting");
@@ -1905,6 +2003,13 @@ function deleteChain()
 
 buildReportButton.addEventListener('click', function(e)
 {
+  buildReports();
+});
+
+// -------------------------------------------------
+
+function buildReports()
+{
     var i;
     tempChainMessage = "";
     tempWaitingMessage = "";
@@ -1924,6 +2029,7 @@ buildReportButton.addEventListener('click', function(e)
     document.getElementById("gameOver").innerHTML = "";
     document.getElementById("errors").innerHTML = "";
 
+
     // loop through players list, build temp messages for waiting, inactive, and break
     db.collection("players").get().then(function(querySnapshot)
     {
@@ -1935,13 +2041,13 @@ buildReportButton.addEventListener('click', function(e)
 
           switch (doc.data().status)
           {
-              case PLAYER_STATUS_WAITING:
-                tempWaitingMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", waiting assignment.<br>";
-              break;
-
-              case PLAYER_STATUS_SCHEDULED:
-                tempScheduledMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", scheduled.<br>";
-              break;
+              // case PLAYER_STATUS_WAITING:
+              //   tempWaitingMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", waiting assignment.<br>";
+              // break;
+              //
+              // case PLAYER_STATUS_SCHEDULED:
+              //   tempScheduledMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", scheduled.<br>";
+              // break;
 
             case PLAYER_STATUS_INACTIVE:
                   tempInactiveMessage += "Player: " + doc.id + " - Name: " + doc.data().name + ", inactive.<br>";
@@ -2017,6 +2123,74 @@ buildReportButton.addEventListener('click', function(e)
         console.log('Error getting or deleting chain documents', err);
     });
 
+    // get the waiting queue
+    var queueRef = db.collection("queues").doc("waiting");
+    queueRef.get().then(function(doc)
+    {
+      if (doc.exists)
+      {
+          var i;
+
+          for (i=0;i<doc.data().players.length;i++)
+          {
+
+            var tempId = doc.data().players[i];
+
+            // retrieve my name from Players db
+            var myPlayerRef = db.collection("players").doc(tempId);
+            myPlayerRef.get().then(function(doc)
+            {
+                if (doc.exists)
+                {
+                    tempWaitingMessage += "Player " + doc.id + " - " + doc.data().name + " is waiting to enter game.<br>";
+                } // end if doc.exists
+                else
+                {
+                  // error checking
+                }
+
+            }); // end myPlayerRef.get
+
+
+          } // end for loop
+
+      } // end if doc exists
+    });
+
+    // get the scheduled queue
+    var scheduledQueueRef = db.collection("queues").doc("scheduled");
+    scheduledQueueRef.get().then(function(doc)
+    {
+      if (doc.exists)
+      {
+          var i;
+
+          for (i=0;i<doc.data().players.length;i++)
+          {
+
+            var tempId = doc.data().players[i];
+
+            // retrieve my name from Players db
+            var myPlayerRef = db.collection("players").doc(tempId);
+            myPlayerRef.get().then(function(doc)
+            {
+                if (doc.exists)
+                {
+                    tempScheduledMessage += "Player " + doc.id + " - " + doc.data().name + " is scheduled to enter game.<br>";
+                } // end if doc.exists
+                else
+                {
+                  // error checking
+                }
+
+            }); // end myPlayerRef.get
+
+
+          } // end for loop
+
+      } // end if doc exists
+    });
+
     // Retrieve Error DB
 
     tempErrorsMessage = "";
@@ -2034,11 +2208,17 @@ buildReportButton.addEventListener('click', function(e)
 
     document.getElementById("activeChain").innerHTML = "Reports Built...";
 
-}); // end function build reports button listener --------------------------------------------
+} // end function build reports  --------------------------------------------
 
 // -------------------------------------------------------------
 
 showReportButton.addEventListener('click', function(e)
+{
+  showReports();
+});
+
+// ------------------------------------------------------------
+function showReports()
 {
       document.getElementById("activeChain").innerHTML = ACTIVE_CHAIN_LABEL + tempChainMessage;
       document.getElementById("waitingAssignment").innerHTML = WAITING_ASSIGNMENT_LABEL + tempWaitingMessage;
@@ -2056,7 +2236,27 @@ showReportButton.addEventListener('click', function(e)
       document.getElementById("onBreak").style.visibility = "visible";
       document.getElementById("registered").style.visibility = "visible";
       document.getElementById("gameOver").style.visibility = "visible";
-});
+}
+
+// ----------------------------------------------------------------
+
+function regenerateReports()
+{
+    console.log("Regenerate called");
+
+    if (regenerateNeeded == true)
+    {
+        buildReports();
+
+        // wait a little for the build
+        //setTimeout(buildReports, REPORTS_DELAY * 1000);
+
+        // wait a little and call show reports zzzz
+        setTimeout( showReports, REPORTS_DELAY * 1500);
+        regenerateNeeded = false;
+    }
+
+}
 
 // start function decodeGameStatus  -------------------------------
 
